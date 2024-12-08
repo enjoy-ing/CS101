@@ -4,19 +4,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const toCurrency = document.getElementById("to-currency");
     const convertButton = document.getElementById("convert");
     const convertedAmount = document.getElementById("converted-amount");
+    const apiKey = "cur_live_OK8FMGNAvgTsCrp1TCMRv4tXAJ3Ywu4O0FDGWweG";
 
-    // Populate currency options
-    fetch("https://api.exchangerate.host/symbols")
+    // Fetch available currencies
+    fetch(`https://api.currencyapi.com/v3/latest?apikey=${apiKey}`)
         .then(response => response.json())
         .then(data => {
-            const symbols = data.symbols;
-            for (const currency in symbols) {
+            const currencies = Object.keys(data.data);
+            currencies.forEach(currency => {
                 const option = document.createElement("option");
                 option.value = currency;
-                option.textContent = `${currency} - ${symbols[currency].description}`;
+                option.textContent = currency;
                 fromCurrency.appendChild(option.cloneNode(true));
                 toCurrency.appendChild(option.cloneNode(true));
-            }
+            });
+        })
+        .catch(err => {
+            console.error("Error fetching currencies:", err);
+            alert("Unable to load currencies. Please try again later.");
         });
 
     // Perform conversion
@@ -30,14 +35,22 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        fetch(`https://api.exchangerate.host/convert?from=${from}&to=${to}&amount=${amount}`)
+        fetch(`https://api.currencyapi.com/v3/latest?apikey=${apiKey}`)
             .then(response => response.json())
             .then(data => {
-                convertedAmount.textContent = `${data.result.toFixed(2)} ${to}`;
+                const rates = data.data;
+                if (rates[from] && rates[to]) {
+                    const fromRate = rates[from].value;
+                    const toRate = rates[to].value;
+                    const convertedValue = (amount / fromRate) * toRate;
+                    convertedAmount.textContent = `${convertedValue.toFixed(2)} ${to}`;
+                } else {
+                    alert("Invalid currency selection. Please try again.");
+                }
             })
             .catch(err => {
-                console.error("Error fetching conversion rate:", err);
-                alert("An error occurred. Please try again.");
+                console.error("Error performing conversion:", err);
+                alert("An error occurred while converting. Please try again.");
             });
     });
 });
